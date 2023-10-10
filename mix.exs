@@ -7,7 +7,8 @@ defmodule DockerZeroman.MixProject do
       version: "0.1.0",
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      escript: escript()
     ]
   end
 
@@ -23,5 +24,9 @@ defmodule DockerZeroman.MixProject do
     [
       {:optimus, "~> 0.5"}
     ]
+  end
+
+  defp escript do
+    [main_module: DockerZeroman.CLI]
   end
 end
