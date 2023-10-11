@@ -19,27 +19,27 @@ defmodule DockerZeroman.CLI do
             value_name: "FILE",
             short: "-f",
             long: "--file",
-            help:
-              "Compose configuration files. Can be specified multiple times, as in `docker compose`.",
+            help: "Compose configuration files. Can be specified multiple times, as in `docker compose`.",
             parser: fn v ->
               {:ok, Path.expand(v, File.cwd!())}
             end,
-            required: false
+            required: false,
+            default: Path.expand("compose.yaml", File.cwd!())
           ],
           healthcheck_timeout: [
             value_name: "SECONDS",
             short: "-t",
-            long: "--timeout",
+            long: "--healthcheck-timeout",
             help:
               "Time in seconds to wait for new container to become healthy, if the container has healthcheck defined in 'Dockerfile' or 'compose.yml'.",
             parser: :integer,
             required: false,
             default: 60
           ],
-          wait: [
+          no_healthcheck_timeout: [
             value_name: "SECONDS",
             short: "-w",
-            long: "--wait",
+            long: "--no-healthcheck-timeout",
             help:
               "Time in seconds to wait for new container to be ready, if the container doesn't have healthcheck defined.",
             parser: :integer,
@@ -49,7 +49,18 @@ defmodule DockerZeroman.CLI do
         ]
       )
 
-    args = Optimus.parse!(optimus, argv)
-    IO.inspect(args)
+    %{
+      args: %{service: service},
+      options: %{
+        compose_file: compose_file,
+        healthcheck_timeout: healthcheck_timeout,
+        no_healthcheck_timeout: no_healthcheck_timeout
+      }
+    } = Optimus.parse!(optimus, argv)
+
+    DockerZeroman.run(compose_file, service,
+      healthcheck_timeout: healthcheck_timeout,
+      no_healthcheck_timeout: no_healthcheck_timeout
+    )
   end
 end
