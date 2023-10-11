@@ -24,3 +24,6 @@ docker_compizo-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# Ignore escripts
+/escripts/

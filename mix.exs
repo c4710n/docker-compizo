@@ -29,9 +29,12 @@ defmodule DockerCompizo.MixProject do
   end
 
   defp escript do
+    name = "docker-compizo"
+
     [
       main_module: DockerCompizo.CLI,
-      name: "docker-compizo"
+      name: name,
+      path: "escripts/#{name}"
     ]
   end
 end
