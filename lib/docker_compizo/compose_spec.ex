@@ -15,13 +15,20 @@ defmodule DockerCompizo.ComposeSpec do
     get_in(parsed, keys)
   end
 
-  def has_healthcheck?(%__MODULE__{} = compose_spec, service) do
-    !!get(compose_spec, ["services", service, "healthcheck"])
-  end
-
   def get_all_services(%__MODULE__{} = compose_spec) do
     compose_spec
     |> get(["services"])
     |> Map.keys()
+  end
+
+  def has_healthcheck?(%__MODULE__{} = compose_spec, service) do
+    !!get(compose_spec, ["services", service, "healthcheck"])
+  end
+
+  def get_service_scale(%__MODULE__{} = compose_spec, service) do
+    case get(compose_spec, ["services", service, "deploy", "replicas"]) do
+      nil -> 1
+      replicas -> replicas
+    end
   end
 end

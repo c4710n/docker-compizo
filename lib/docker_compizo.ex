@@ -51,9 +51,14 @@ defmodule DockerCompizo do
 
     old_containers = Compose.get_running_containers(context, service)
 
-    from_count = Enum.count(old_containers)
-    to_count = from_count * 2
-    scale_service(context, service, from_count, to_count)
+    current_scale = Enum.count(old_containers)
+
+    new_scale =
+      context
+      |> ComposeSpec.from_context!()
+      |> ComposeSpec.get_service_scale(service)
+
+    scale_service(context, service, current_scale, new_scale)
 
     new_containers = Compose.get_running_containers(context, service) -- old_containers
 
@@ -87,9 +92,10 @@ defmodule DockerCompizo do
     Compose.up_service(context, service)
   end
 
-  defp scale_service(context, service, from_count, to_count) do
-    report("Scaling '#{service}' service from #{from_count} to #{to_count} containers")
-    Compose.scale_service(context, service, to_count)
+  defp scale_service(context, service, current_scale, new_scale) do
+    scale = current_scale + new_scale
+    report("Scaling '#{service}' service from #{current_scale} to #{scale} containers")
+    Compose.scale_service(context, service, scale)
   end
 
   defp support_healthcheck?(context, service) do
