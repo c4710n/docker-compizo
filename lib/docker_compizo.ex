@@ -5,7 +5,10 @@ defmodule DockerCompizo do
 
   require Logger
   alias __MODULE__.Context
-  alias __MODULE__.Docker
+  alias __MODULE__.ComposeSpec
+  alias __MODULE__.Compose
+  alias __MODULE__.Image
+  alias __MODULE__.Container
 
   def run(compose_file, service, opts = [healthcheck_timeout: _, no_healthcheck_timeout: _]) do
     docker_bin = System.find_executable("docker")
@@ -21,20 +24,24 @@ defmodule DockerCompizo do
 
     up_required_services!(context, service)
 
-    if containers_running!(context, service) == [] do
-      up!(context, service)
+    if Compose.get_running_containers(context, service) == [] do
+      up_service(context, service)
     else
       scale_bluegreen!(context, service, opts)
     end
   end
 
   defp up_required_services!(context, service) do
-    required_services =
-      services_missing!(context)
-      |> List.delete(service)
+    all_services =
+      context
+      |> ComposeSpec.from_context!()
+      |> ComposeSpec.get_all_services()
+
+    running_services = Compose.get_running_services(context)
+    required_services = all_services -- running_services -- [service]
 
     for service <- required_services do
-      up!(context, service)
+      up_service(context, service)
     end
   end
 
@@ -42,26 +49,25 @@ defmodule DockerCompizo do
     healthcheck_timeout = Keyword.fetch!(opts, :healthcheck_timeout)
     no_healthcheck_timeout = Keyword.fetch!(opts, :no_healthcheck_timeout)
 
-    old_containers = containers_running!(context, service)
+    old_containers = Compose.get_running_containers(context, service)
 
     from_count = Enum.count(old_containers)
     to_count = from_count * 2
-    scale!(context, service, from_count, to_count)
+    scale_service(context, service, from_count, to_count)
 
-    old_one_container = List.first(old_containers)
-    new_containers = containers_running!(context, service) -- old_containers
+    new_containers = Compose.get_running_containers(context, service) -- old_containers
 
-    if is_healthcheck_supported?(context, old_one_container) do
+    if support_healthcheck?(context, service) do
       report("Waiting for new containers to be healthy (timeout: #{healthcheck_timeout} seconds)")
 
       if health?(context, new_containers, healthcheck_timeout) do
-        report("Removing old containers")
-        remove!(context, old_containers)
+        report("Cleaning old containers")
+        Container.destroy(context, old_containers)
 
         ok!()
       else
         report("New containers are not healthy. Rolling back")
-        remove!(context, new_containers)
+        Container.destroy(context, new_containers)
 
         abort!()
       end
@@ -69,76 +75,35 @@ defmodule DockerCompizo do
       report("Waiting for new containers to be ready (timeout: #{no_healthcheck_timeout} seconds)")
       Process.sleep(:timer.seconds(no_healthcheck_timeout))
 
-      report("Removing old containers")
-      remove!(context, old_containers)
+      report("Cleaning old containers")
+      Container.destroy(context, old_containers)
 
       ok!()
     end
   end
 
-  defp services_all!(context) do
-    Docker.compose(:batch, context, ["config", "--services"])
-    |> case do
-      {:ok, services} -> String.split(services, "\n", trim: true)
-      _ -> error!("Failed to get all services")
-    end
-  end
-
-  defp services_running!(context) do
-    Docker.compose(:batch, context, ["ps", "--services"])
-    |> case do
-      {:ok, services} -> String.split(services, "\n", trim: true)
-      _ -> error!("Failed to get running services")
-    end
-  end
-
-  defp services_missing!(context) do
-    services_all!(context) -- services_running!(context)
-  end
-
-  defp containers_running!(context, service) do
-    Docker.compose(:batch, context, ["ps", "--quiet", service])
-    |> case do
-      {:ok, containers} -> String.split(containers, "\n", trim: true)
-      _ -> error!("Failed to get running containers")
-    end
-  end
-
-  defp up!(context, service) do
+  defp up_service(context, service) do
     report("Service '#{service}' is not running. Starting the service")
-    Docker.compose(:stream, context, ["up", "--detach", "--no-recreate", service])
+    Compose.up_service(context, service)
   end
 
-  defp scale!(context, service, from_count, to_count) do
+  defp scale_service(context, service, from_count, to_count) do
     report("Scaling '#{service}' service from #{from_count} to #{to_count} containers")
-    Docker.compose(:stream, context, ["up", "--detach", "--no-recreate", "--scale", "#{service}=#{to_count}", service])
+    Compose.scale_service(context, service, to_count)
   end
 
-  defp remove!(context, containers) when is_list(containers) do
-    for container <- containers do
-      remove!(context, container)
-    end
+  defp support_healthcheck?(context, service) do
+    compose_spec = ComposeSpec.from_context!(context)
+    image = ComposeSpec.get(compose_spec, ["services", service, "image"])
 
-    :ok
-  end
-
-  defp remove!(context, container) do
-    Docker.stop(:batch, context, [container])
-    Docker.rm(:batch, context, [container])
-  end
-
-  defp is_healthcheck_supported?(context, container) do
-    with {:ok, raw_json} <- Docker.inspect(:batch, context, ["--format", "{{json .State.Health}}", container]) do
-      String.contains?(raw_json, "\"Status\"")
-    else
-      _ -> false
-    end
+    ComposeSpec.has_healthcheck?(compose_spec, service) ||
+      Image.has_healthcheck?(context, image)
   end
 
   defp health?(context, containers, timeout) do
     tasks =
       Enum.map(containers, fn container ->
-        Task.async(fn -> healthcheck_loop(context, container) end)
+        Task.async(fn -> loop_check_health(context, container) end)
       end)
 
     tasks_with_results = Task.yield_many(tasks, :timer.seconds(timeout))
@@ -158,29 +123,19 @@ defmodule DockerCompizo do
     expected_checks == passed_checks
   end
 
-  defp healthcheck_loop(context, container, opts \\ []) do
-    interval = Keyword.get(opts, :interval, 1)
-    health? = healthcheck(context, container)
+  defp loop_check_health(context, container) do
+    case Container.get_health_status(context, container) do
+      :healthy ->
+        true
 
-    if health? do
-      health?
-    else
-      Process.sleep(:timer.seconds(interval))
-      healthcheck_loop(context, container, opts)
-    end
-  end
-
-  defp healthcheck(context, container) do
-    with {:ok, raw_json} <- Docker.inspect(:batch, context, ["--format", "{{json .State.Health.Status}}", container]),
-         {:ok, status} <- Jason.decode(raw_json) do
-      status == "healthy"
-    else
-      _ -> false
+      _ ->
+        Process.sleep(:timer.seconds(1))
+        loop_check_health(context, container)
     end
   end
 
   defp report(msg) do
-    IO.puts("==> #{msg}")
+    IO.puts("> #{msg}")
   end
 
   defp ok!() do
