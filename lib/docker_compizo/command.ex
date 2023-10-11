@@ -1,4 +1,4 @@
-defmodule DockerZeroman.Command do
+defmodule DockerCompizo.Command do
   require Logger
 
   def run(type, cmd, args) when type in [:batch, :stream] and is_list(args) do

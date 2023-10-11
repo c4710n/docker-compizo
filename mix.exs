@@ -1,9 +1,9 @@
-defmodule DockerZeroman.MixProject do
+defmodule DockerCompizo.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :docker_zeroman,
+      app: :docker_compizo,
       version: "0.1.0",
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
@@ -28,6 +28,6 @@ defmodule DockerZeroman.MixProject do
   end
 
   defp escript do
-    [main_module: DockerZeroman.CLI]
+    [main_module: DockerCompizo.CLI]
   end
 end

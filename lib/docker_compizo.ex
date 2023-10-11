@@ -1,6 +1,6 @@
-defmodule DockerZeroman do
+defmodule DockerCompizo do
   @moduledoc """
-  Documentation for `DockerZeroman`.
+  Documentation for `DockerCompizo`.
   """
 
   require Logger

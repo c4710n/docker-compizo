@@ -1,8 +1,8 @@
-defmodule DockerZeroman.CLI do
+defmodule DockerCompizo.CLI do
   def main(argv) do
     optimus =
       Optimus.new!(
-        name: "docker-zeroman",
+        name: "docker-compizo",
         description: "Deploy a new version of Docker Compose service without downtime.",
         version: "0.1.0",
         allow_unknown_args: false,
@@ -58,7 +58,7 @@ defmodule DockerZeroman.CLI do
       }
     } = Optimus.parse!(optimus, argv)
 
-    DockerZeroman.run(compose_file, service,
+    DockerCompizo.run(compose_file, service,
       healthcheck_timeout: healthcheck_timeout,
       no_healthcheck_timeout: no_healthcheck_timeout
     )

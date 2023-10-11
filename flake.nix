@@ -1,5 +1,5 @@
 {
-  description = "docker-zeroman";
+  description = "docker-compizo";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";

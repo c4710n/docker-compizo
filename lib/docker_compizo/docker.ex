@@ -1,6 +1,6 @@
-defmodule DockerZeroman.Docker do
-  alias DockerZeroman.Context
-  alias DockerZeroman.Command
+defmodule DockerCompizo.Docker do
+  alias DockerCompizo.Context
+  alias DockerCompizo.Command
 
   def compose(type, context, args) do
     %Context{
