@@ -38,7 +38,11 @@ defmodule DockerCompizo do
       |> ComposeSpec.get_all_services()
 
     running_services = Compose.get_running_services(context)
-    required_services = all_services -- running_services -- [service]
+
+    required_services =
+      all_services
+      |> substract(running_services)
+      |> substract([service])
 
     for service <- required_services do
       up_service(context, service)
@@ -138,6 +142,12 @@ defmodule DockerCompizo do
         Process.sleep(:timer.seconds(1))
         loop_check_health(context, container)
     end
+  end
+
+  defp substract(a, b) when is_list(a) and is_list(b) do
+    :ordsets.from_list(a)
+    |> :ordsets.subtract(:ordsets.from_list(b))
+    |> :ordsets.to_list()
   end
 
   defp report(msg) do
