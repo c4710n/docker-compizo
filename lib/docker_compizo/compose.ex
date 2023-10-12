@@ -57,8 +57,6 @@ defmodule DockerCompizo.Compose do
     [
       "--ansi",
       "never",
-      "--progress",
-      "plain",
       "--file",
       context.compose_file
     ]
