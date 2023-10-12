@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  traefik:
+    image: traefik:v2.9
+    container_name: traefik-jane
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  app:
+    image: traefik/whoami
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.entrypoints=web"
+      - "traefik.http.routers.whoami.rule=Path(`/`)"
+    deploy:
+      mode: replicated
+      replicas: 2
