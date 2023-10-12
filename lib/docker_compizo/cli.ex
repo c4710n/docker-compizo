@@ -1,4 +1,17 @@
 defmodule DockerCompizo.CLI do
+  @moduledoc """
+  Provides CLI for `DockerCompizo`.
+
+  ## TODO
+
+  * optimus - the command line parser, just works. But it is not aesthetically
+    pleasing or refined. I will replace it at the appropriate time.
+
+  """
+
+  alias DockerCompizo.BadEnv
+  alias DockerCompizo.BadRun
+
   def main(argv) do
     optimus =
       Optimus.new!(
@@ -51,16 +64,25 @@ defmodule DockerCompizo.CLI do
 
     %{
       args: %{service: service},
-      options: %{
-        compose_file: compose_file,
-        healthcheck_timeout: healthcheck_timeout,
-        no_healthcheck_timeout: no_healthcheck_timeout
-      }
+      options:
+        %{
+          compose_file: _,
+          healthcheck_timeout: _,
+          no_healthcheck_timeout: _
+        } = opts
     } = Optimus.parse!(optimus, argv)
 
-    DockerCompizo.run(compose_file, service,
-      healthcheck_timeout: healthcheck_timeout,
-      no_healthcheck_timeout: no_healthcheck_timeout
-    )
+    try do
+      DockerCompizo.run(service, Map.to_list(opts))
+      System.stop(0)
+    rescue
+      error in [BadEnv, BadRun] ->
+        abort!(error)
+    end
+  end
+
+  defp abort!(error) do
+    IO.write(:stderr, "#{error.message}\n")
+    System.stop(1)
   end
 end
