@@ -27,3 +27,6 @@ docker_compizo-*.tar
 
 # Ignore escripts
 /escripts/
+
+# Ignore Nix built artifacts
+/result

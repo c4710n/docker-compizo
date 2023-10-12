@@ -28,11 +28,20 @@
           system = system;
           overlays = if system == "aarch64-darwin" then [ overlayBeam ] else [ ];
         };
+
+        docker-compizo = pkgs.callPackage ./nix/pkgs/docker-compizo.nix { };
       in
       {
         devShells.default = with pkgs; mkShell {
           buildInputs = [ elixir docker-client ];
         };
+
+        packages.default = docker-compizo;
+        packages.docker-compizo = docker-compizo;
       }
-    ));
+    )) // {
+      overlays.default = final: prev: {
+        docker-compizo = prev.callPackage ./nix/pkgs/docker-compizo.nix { };
+      };
+    };
 }
