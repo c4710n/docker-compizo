@@ -20,7 +20,7 @@ beamPackages.mixRelease rec {
   mixFodDeps = beamPackages.fetchMixDeps {
     pname = "mix-deps-${pname}";
     inherit src version;
-    hash = "sha256-nPIs7ChGpUFW46Lqcpgb7RHzRWqVJb12XYAGcmFPl70=";
+    sha256 = "sha256-nPIs7ChGpUFW46Lqcpgb7RHzRWqVJb12XYAGcmFPl70=";
   };
 
   installPhase = ''
