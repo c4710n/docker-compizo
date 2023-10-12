@@ -21,6 +21,11 @@ defmodule DockerCompizo.ComposeSpec do
     |> Map.keys()
   end
 
+  def get_service(%__MODULE__{} = compose_spec, service) do
+    compose_spec
+    |> get(["services", service])
+  end
+
   def has_healthcheck?(%__MODULE__{} = compose_spec, service) do
     !!get(compose_spec, ["services", service, "healthcheck"])
   end

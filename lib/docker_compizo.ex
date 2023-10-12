@@ -1,33 +1,82 @@
 defmodule DockerCompizo do
   @moduledoc """
-  Documentation for `DockerCompizo`.
+  Deploys a new version of Docker Compose service without downtime.
   """
 
   require Logger
+  alias __MODULE__.BadEnv
+  alias __MODULE__.BadRun
+  alias __MODULE__.Default
+  alias __MODULE__.Docker
   alias __MODULE__.Context
   alias __MODULE__.ComposeSpec
   alias __MODULE__.Compose
   alias __MODULE__.Image
   alias __MODULE__.Container
 
-  def run(compose_file, service, opts = [healthcheck_timeout: _, no_healthcheck_timeout: _]) do
-    docker_bin = System.find_executable("docker")
+  def run(service, opts \\ []) do
+    check_docker!()
 
-    unless docker_bin do
-      error!("Command docker is missing. Please install docker first.")
-    end
+    opts = Keyword.merge(Default.options(), opts)
+    compose_file = Keyword.fetch!(opts, :compose_file)
+    scale_opts = Keyword.take(opts, [:healthcheck_timeout, :no_healthcheck_timeout])
 
     context = %Context{
-      docker_bin: docker_bin,
+      docker_bin: System.find_executable("docker"),
       compose_file: compose_file
     }
+
+    check_context!(context)
+    check_service!(context, service)
 
     up_required_services!(context, service)
 
     if Compose.get_running_containers(context, service) == [] do
       up_service(context, service)
     else
-      scale_bluegreen!(context, service, opts)
+      scale_bluegreen!(context, service, scale_opts)
+    end
+  end
+
+  defp check_docker!() do
+    if !Docker.is_installed?() do
+      raise BadEnv, "docker - not installed"
+    end
+
+    if !Docker.is_compose_supported?() do
+      raise BadEnv, "docker - missing support for compose"
+    end
+  end
+
+  defp check_context!(context) do
+    %{compose_file: compose_file} = context
+    path = Path.relative_to_cwd(compose_file)
+
+    case File.read(compose_file) do
+      {:ok, _} ->
+        case Compose.validate(context) do
+          :ok -> :ok
+          :error -> raise BadEnv, "bad Compose configuration file - #{path}"
+        end
+
+      {:error, posix} when posix in [:enoent, :enotdir] ->
+        raise BadEnv, "missing file - #{path}"
+
+      {:error, :eisdir} ->
+        raise BadEnv, "bad file - #{path}"
+
+      _ ->
+        raise BadEnv, "failed to read file - #{path}"
+    end
+  end
+
+  defp check_service!(context, service) do
+    context
+    |> ComposeSpec.from_context!()
+    |> ComposeSpec.get_service(service)
+    |> case do
+      nil -> raise BadEnv, "unknown service - #{service}"
+      _ -> :ok
     end
   end
 
@@ -73,7 +122,7 @@ defmodule DockerCompizo do
         report("Cleaning old containers")
         Container.destroy(context, old_containers)
 
-        ok!()
+        ok()
       else
         report("New containers are not healthy. Rolling back")
         Container.destroy(context, new_containers)
@@ -87,7 +136,7 @@ defmodule DockerCompizo do
       report("Cleaning old containers")
       Container.destroy(context, old_containers)
 
-      ok!()
+      ok()
     end
   end
 
@@ -154,16 +203,21 @@ defmodule DockerCompizo do
     IO.puts("> #{msg}")
   end
 
-  defp ok!() do
-    System.stop(0)
+  # This function may seem unnecessary, but it helps me mark the point
+  # where the program should terminate normally.
+  defp ok() do
+    :ok
   end
 
   defp abort!() do
-    System.stop(1)
+    raise BadRun
   end
+end
 
-  defp error!(msg) do
-    IO.write(:stderr, "#{msg}.\n")
-    System.stop(1)
-  end
+defmodule DockerCompizo.BadEnv do
+  defexception [:message]
+end
+
+defmodule DockerCompizo.BadRun do
+  defexception [:message]
 end

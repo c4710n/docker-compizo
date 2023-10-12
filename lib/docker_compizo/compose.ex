@@ -2,6 +2,13 @@ defmodule DockerCompizo.Compose do
   alias DockerCompizo.Context
   alias DockerCompizo.Command
 
+  def validate(%Context{} = context) do
+    case batch(context, ["config", "--quiet"]) do
+      {:ok, _} -> :ok
+      _ -> :error
+    end
+  end
+
   def get_running_services(%Context{} = context) do
     {:ok, raw_services} = batch(context, ["ps", "--services"])
     String.split(raw_services, "\n", trim: true)
