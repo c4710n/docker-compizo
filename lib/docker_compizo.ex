@@ -3,7 +3,6 @@ defmodule DockerCompizo do
   Deploys a new version of Docker Compose service without downtime.
   """
 
-  require Logger
   alias __MODULE__.BadEnv
   alias __MODULE__.BadRun
   alias __MODULE__.Default
