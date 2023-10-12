@@ -1,15 +1,16 @@
 defmodule DockerCompizo.Command do
   require Logger
 
-  def run(type, cmd, args) when type in [:batch, :stream] and is_list(args) do
+  def run(type, cmd, args, opts \\ []) when type in [:batch, :stream] and is_list(args) do
     case type do
-      :batch -> batch_run(cmd, args)
-      :stream -> stream_run(cmd, args)
+      :batch -> batch_run(cmd, args, opts)
+      :stream -> stream_run(cmd, args, opts)
     end
   end
 
-  defp batch_run(cmd, args) do
+  defp batch_run(cmd, args, opts) do
     cli = "#{cmd} #{Enum.join(args, " ")}"
+    silent = Keyword.get(opts, :silent)
 
     System.cmd(cmd, args)
     |> case do
@@ -17,12 +18,12 @@ defmodule DockerCompizo.Command do
         {:ok, output}
 
       {_, exit_status} ->
-        Logger.debug("failed to run `#{cli}`, #{exit_status}")
+        unless silent, do: Logger.debug("failed to run `#{cli}`, #{exit_status}")
         :error
     end
   end
 
-  defp stream_run(cmd, args) do
+  defp stream_run(cmd, args, opts) do
     cli = "#{cmd} #{Enum.join(args, " ")}"
 
     port =
@@ -36,20 +37,22 @@ defmodule DockerCompizo.Command do
         :stderr_to_stdout
       ])
 
-    handle_stream(port, cli)
+    handle_stream(port, cli, opts)
   end
 
-  defp handle_stream(port, cli) do
+  defp handle_stream(port, cli, opts) do
+    silent = Keyword.get(opts, :silent)
+
     receive do
       {^port, {:data, data}} ->
         IO.write(data)
-        handle_stream(port, cli)
+        handle_stream(port, cli, opts)
 
       {^port, {:exit_status, 0}} ->
         :ok
 
       {^port, {:exit_status, exit_status}} when exit_status == 0 ->
-        Logger.debug("failed to run `#{cli}`, #{exit_status}")
+        unless silent, do: Logger.debug("failed to run `#{cli}`, #{exit_status}")
         :error
     end
   end
