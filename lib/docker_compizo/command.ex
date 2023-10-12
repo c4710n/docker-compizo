@@ -12,7 +12,7 @@ defmodule DockerCompizo.Command do
     cli = "#{cmd} #{Enum.join(args, " ")}"
     silent = Keyword.get(opts, :silent)
 
-    System.cmd(cmd, args)
+    System.cmd(cmd, args, stderr_to_stdout: true)
     |> case do
       {output, 0} ->
         {:ok, output}
