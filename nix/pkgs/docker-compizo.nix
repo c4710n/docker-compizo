@@ -1,4 +1,5 @@
-{ lib
+{ rev
+, lib
 , beamPackages
 , elixir
 , makeWrapper
@@ -8,7 +9,7 @@
 }:
 beamPackages.mixRelease rec {
   pname = "docker-compizo";
-  version = "0.1.0";
+  version = rev;
 
   inherit elixir;
 

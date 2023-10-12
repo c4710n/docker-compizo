@@ -8,6 +8,8 @@
 
   outputs = { self, nixpkgs, flake-utils, ... }:
     let
+      rev = self.shortRev or "dirty";
+
       overlayBeam = _final: prev: {
         beam = prev.beam // {
           interpreters = prev.beam.interpreters // {
@@ -28,8 +30,7 @@
           system = system;
           overlays = if system == "aarch64-darwin" then [ overlayBeam ] else [ ];
         };
-
-        docker-compizo = pkgs.callPackage ./nix/pkgs/docker-compizo.nix { };
+        docker-compizo = pkgs.callPackage ./nix/pkgs/docker-compizo.nix { inherit rev; };
       in
       {
         devShells.default = with pkgs; mkShell {
@@ -41,7 +42,7 @@
       }
     )) // {
       overlays.default = final: prev: {
-        docker-compizo = prev.callPackage ./nix/pkgs/docker-compizo.nix { };
+        docker-compizo = prev.callPackage ./nix/pkgs/docker-compizo.nix { inherit rev; };
       };
     };
 }
