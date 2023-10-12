@@ -8,8 +8,8 @@ Deploys a new version of Docker Compose service without downtime.
 
 ## Requirements
 
-- Docker with `docker compose` support.
 - Elixir 1.14 or later
+- Docker with `docker compose` support.
 
 ## Usage
 
@@ -47,7 +47,7 @@ I prefer the simple solution - Docker Compose. But, using `docker compose up` to
 
 ## About the name
 
-Compizo (/kəmˈpaɪzoʊ/) is a compound word formed by combining _compose_ and and _zero deployment_.
+Compizo (/kəmˈpaɪzoʊ/) is a compound word formed by combining _compose_ and and _zero deployment_:
 
 > docker-compizo = <ins>docker-comp</ins>ose + <ins>z</ins>er<ins>o</ins> deployment
 
