@@ -4,8 +4,6 @@
 
 Deploys a new version of Docker Compose service without downtime.
 
-> docker-compizo /kəmˈpaɪzoʊ/ = <ins>docker-comp</ins>ose + <ins>z</ins>er<ins>o</ins> deployment
-
 > This project is an Elixir port of [docker-rollout](https://github.com/Wowu/docker-rollout) with minor improvements.
 
 ## Requirements
@@ -46,6 +44,12 @@ Using container orchestration tools like [Kubernetes](https://kubernetes.io/), [
 I prefer the simple solution - Docker Compose. But, using `docker compose up` to deploy a new version of a service causes downtime because the containers are stopped before the new containers are created. Nowadays, this kind of downtime is unacceptable for end users.
 
 `docker-compizo` tries to maintain a balance between a simple solution and a good end-user experience.
+
+## About the name
+
+Compizo (/kəmˈpaɪzoʊ/) is a compound word formed by combining _compose_ and and _zero deployment_.
+
+> docker-compizo = <ins>docker-comp</ins>ose + <ins>z</ins>er<ins>o</ins> deployment
 
 ## License
 
