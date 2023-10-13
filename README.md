@@ -4,7 +4,7 @@
 
 Deploys a new version of Docker Compose service without downtime.
 
-> This project is an Elixir port of [docker-rollout](https://github.com/Wowu/docker-rollout) with minor improvements.
+> This project is an Elixir port of [docker-rollout](https://github.com/Wowu/docker-rollout) with minor improvements, such as config change detection, replicas change detection, etc.
 
 ## Requirements
 
