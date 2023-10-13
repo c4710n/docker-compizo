@@ -9,10 +9,13 @@ defmodule DockerCompizo.CLI do
 
   """
 
+  alias DockerCompizo.Default
   alias DockerCompizo.BadEnv
   alias DockerCompizo.BadRun
 
   def main(argv) do
+    defaultOptions = Default.options()
+
     optimus =
       Optimus.new!(
         name: "docker-compizo",
@@ -36,7 +39,7 @@ defmodule DockerCompizo.CLI do
               {:ok, Path.expand(v, File.cwd!())}
             end,
             required: false,
-            default: Path.expand("compose.yaml", File.cwd!())
+            default: Keyword.fetch!(defaultOptions, :compose_file)
           ],
           healthcheck_timeout: [
             value_name: "SECONDS",
@@ -46,7 +49,7 @@ defmodule DockerCompizo.CLI do
               "Time in seconds to wait for new container to become healthy, if the container has healthcheck defined in 'Dockerfile' or 'compose.yml'.",
             parser: :integer,
             required: false,
-            default: 60
+            default: Keyword.fetch!(defaultOptions, :healthcheck_timeout)
           ],
           no_healthcheck_timeout: [
             value_name: "SECONDS",
@@ -56,7 +59,7 @@ defmodule DockerCompizo.CLI do
               "Time in seconds to wait for new container to be ready, if the container doesn't have healthcheck defined.",
             parser: :integer,
             required: false,
-            default: 10
+            default: Keyword.fetch!(defaultOptions, :no_healthcheck_timeout)
           ]
         ]
       )
