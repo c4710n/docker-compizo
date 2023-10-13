@@ -4,7 +4,7 @@
 
 Deploys a new version of Docker Compose service without downtime.
 
-> This project is an Elixir port of [docker-rollout](https://github.com/Wowu/docker-rollout) with minor improvements, such as config change detection, replicas change detection, etc.
+> This project is an Elixir port of [docker-rollout](https://github.com/Wowu/docker-rollout) with minor improvements.
 
 ## Requirements
 
@@ -13,9 +13,23 @@ Deploys a new version of Docker Compose service without downtime.
 
 ## Usage
 
+First, write the `compose.yaml` for your application.
+
+Then, run:
+
 ```bash
 $ docker-compizo -f compose.yaml <service>
 ```
+
+Above command will:
+
+1. deploy all other services except `<service>`.
+2. deploy `<service>`:
+   - if the `<service>` is not running, `<service>` will be deployed directly.
+   - if the `<service>` is running, and when one of the following conditions is met, `<service>` will be deployed carefully, without downtime:
+     - if the compose config hash of `<service>` is changed.
+     - if the replicas of `<service>` is changed.
+   - in other cases, nothing will be deployed.
 
 See `docker-compizo --help` and examples in [examples](examples) directory for more usage.
 
