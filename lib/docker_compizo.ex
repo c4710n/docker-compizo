@@ -28,13 +28,8 @@ defmodule DockerCompizo do
     check_context!(context)
     check_service!(context, service)
 
-    up_required_services!(context, service)
-
-    if Compose.get_running_containers(context, service) == [] do
-      up_service(context, service)
-    else
-      scale_bluegreen!(context, service, scale_opts)
-    end
+    up_other_services!(context, service)
+    scale_current_service!(context, service, scale_opts)
   end
 
   defp check_docker!() do
@@ -79,7 +74,7 @@ defmodule DockerCompizo do
     end
   end
 
-  defp up_required_services!(context, service) do
+  defp up_other_services!(context, current_service) do
     all_services =
       context
       |> ComposeSpec.from_context!()
@@ -90,10 +85,45 @@ defmodule DockerCompizo do
     required_services =
       all_services
       |> substract(running_services)
-      |> substract([service])
+      |> substract([current_service])
 
     for service <- required_services do
       up_service(context, service)
+    end
+
+    :ok
+  end
+
+  defp scale_current_service!(context, current_service, scale_opts) do
+    running_services = Compose.get_running_services(context)
+    is_service_running? = current_service in running_services
+
+    if !is_service_running? do
+      up_service(context, current_service)
+    else
+      running_containers = Compose.get_running_containers(context, current_service)
+
+      running_containers_config_hash =
+        Enum.map(running_containers, fn container ->
+          Container.get_container_compose_config_hash(context, container)
+        end)
+
+      service_config_hash = Compose.get_service_config_hash(context, current_service)
+
+      is_service_config_hash_changed? = service_config_hash not in running_containers_config_hash
+
+      current_scale = Enum.count(running_containers)
+
+      new_scale =
+        context
+        |> ComposeSpec.from_context!()
+        |> ComposeSpec.get_service_scale(current_service)
+
+      is_scale_changed? = current_scale != new_scale
+
+      if is_service_config_hash_changed? || is_scale_changed? do
+        scale_bluegreen!(context, current_service, scale_opts)
+      end
     end
   end
 

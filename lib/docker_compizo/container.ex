@@ -2,6 +2,21 @@ defmodule DockerCompizo.Container do
   alias DockerCompizo.Context
   alias DockerCompizo.Command
 
+  def get_container_compose_config_hash(%Context{} = context, container) do
+    {:ok, line} =
+      Command.run(:batch, bin(context), [
+        "inspect",
+        "--format",
+        "{{index .Config.Labels \"com.docker.compose.config-hash\"}}",
+        container
+      ])
+
+    case String.trim(line) do
+      "" -> nil
+      hash -> hash
+    end
+  end
+
   def get_health_status(%Context{} = context, container) do
     {:ok, json_string} = Command.run(:batch, bin(context), ["inspect", "--format", "{{json .State.Health}}", container])
 

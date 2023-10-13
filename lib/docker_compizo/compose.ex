@@ -9,6 +9,17 @@ defmodule DockerCompizo.Compose do
     end
   end
 
+  def get_service_config_hash(%Context{} = context, service) do
+    {:ok, line} = batch(context, ["config", "--hash", service])
+
+    [_name, hash] =
+      line
+      |> String.trim()
+      |> String.split(" ", parts: 2)
+
+    hash
+  end
+
   def get_running_services(%Context{} = context) do
     {:ok, raw_services} = batch(context, ["ps", "--services"])
     String.split(raw_services, "\n", trim: true)
