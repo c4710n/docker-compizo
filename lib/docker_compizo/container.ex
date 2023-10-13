@@ -2,7 +2,7 @@ defmodule DockerCompizo.Container do
   alias DockerCompizo.Context
   alias DockerCompizo.Command
 
-  def get_container_compose_config_hash(%Context{} = context, container) do
+  def get_compose_config_hash(%Context{} = context, container) do
     {:ok, line} =
       Command.run(:batch, bin(context), [
         "inspect",
@@ -17,7 +17,7 @@ defmodule DockerCompizo.Container do
     end
   end
 
-  def get_health_status(%Context{} = context, container) do
+  def get_health_state(%Context{} = context, container) do
     {:ok, json_string} = Command.run(:batch, bin(context), ["inspect", "--format", "{{json .State.Health}}", container])
 
     case Jason.decode!(json_string) do

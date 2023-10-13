@@ -48,7 +48,7 @@ defmodule DockerCompizo do
 
     case File.read(compose_file) do
       {:ok, _} ->
-        case Compose.validate(context) do
+        case Compose.validate_config(context) do
           :ok -> :ok
           :error -> raise BadEnv, "bad Compose configuration file - #{path}"
         end
@@ -78,9 +78,9 @@ defmodule DockerCompizo do
     all_services =
       context
       |> ComposeSpec.from_context!()
-      |> ComposeSpec.get_all_services()
+      |> ComposeSpec.list_services()
 
-    running_services = Compose.get_running_services(context)
+    running_services = Compose.list_running_services(context)
 
     required_services =
       all_services
@@ -95,17 +95,17 @@ defmodule DockerCompizo do
   end
 
   defp scale_current_service!(context, current_service, scale_opts) do
-    running_services = Compose.get_running_services(context)
+    running_services = Compose.list_running_services(context)
     is_service_running? = current_service in running_services
 
     if !is_service_running? do
       up_service(context, current_service)
     else
-      running_containers = Compose.get_running_containers(context, current_service)
+      running_containers = Compose.list_running_containers(context, current_service)
 
       running_containers_config_hash =
         Enum.map(running_containers, fn container ->
-          Container.get_container_compose_config_hash(context, container)
+          Container.get_compose_config_hash(context, container)
         end)
 
       service_config_hash = Compose.get_service_config_hash(context, current_service)
@@ -131,7 +131,7 @@ defmodule DockerCompizo do
     healthcheck_timeout = Keyword.fetch!(opts, :healthcheck_timeout)
     no_healthcheck_timeout = Keyword.fetch!(opts, :no_healthcheck_timeout)
 
-    old_containers = Compose.get_running_containers(context, service)
+    old_containers = Compose.list_running_containers(context, service)
 
     current_scale = Enum.count(old_containers)
 
@@ -140,9 +140,11 @@ defmodule DockerCompizo do
       |> ComposeSpec.from_context!()
       |> ComposeSpec.get_service_scale(service)
 
-    scale_service(context, service, current_scale, new_scale)
+    scale = current_scale + new_scale
+    report("Scaling '#{service}' service from #{current_scale} to #{scale} containers")
+    Compose.scale_service(context, service, scale)
 
-    new_containers = Compose.get_running_containers(context, service) -- old_containers
+    new_containers = Compose.list_running_containers(context, service) -- old_containers
 
     if support_healthcheck?(context, service) do
       report("Waiting for new containers to be healthy (timeout: #{healthcheck_timeout} seconds)")
@@ -174,17 +176,11 @@ defmodule DockerCompizo do
     Compose.up_service(context, service)
   end
 
-  defp scale_service(context, service, current_scale, new_scale) do
-    scale = current_scale + new_scale
-    report("Scaling '#{service}' service from #{current_scale} to #{scale} containers")
-    Compose.scale_service(context, service, scale)
-  end
-
   defp support_healthcheck?(context, service) do
     compose_spec = ComposeSpec.from_context!(context)
-    image = ComposeSpec.get(compose_spec, ["services", service, "image"])
+    image = ComposeSpec.get_service_image(compose_spec, service)
 
-    ComposeSpec.has_healthcheck?(compose_spec, service) ||
+    ComposeSpec.has_service_healthcheck?(compose_spec, service) ||
       Image.has_healthcheck?(context, image)
   end
 
@@ -212,7 +208,7 @@ defmodule DockerCompizo do
   end
 
   defp loop_check_health(context, container) do
-    case Container.get_health_status(context, container) do
+    case Container.get_health_state(context, container) do
       :healthy ->
         true
 

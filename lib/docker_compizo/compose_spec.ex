@@ -11,11 +11,7 @@ defmodule DockerCompizo.ComposeSpec do
     }
   end
 
-  def get(%__MODULE__{parsed: parsed}, keys) when is_list(keys) do
-    get_in(parsed, keys)
-  end
-
-  def get_all_services(%__MODULE__{} = compose_spec) do
+  def list_services(%__MODULE__{} = compose_spec) do
     compose_spec
     |> get(["services"])
     |> Map.keys()
@@ -26,8 +22,8 @@ defmodule DockerCompizo.ComposeSpec do
     |> get(["services", service])
   end
 
-  def has_healthcheck?(%__MODULE__{} = compose_spec, service) do
-    !!get(compose_spec, ["services", service, "healthcheck"])
+  def get_service_image(%__MODULE__{} = compose_spec, service) do
+    get(compose_spec, ["services", service, "image"])
   end
 
   def get_service_scale(%__MODULE__{} = compose_spec, service) do
@@ -35,5 +31,13 @@ defmodule DockerCompizo.ComposeSpec do
       nil -> 1
       replicas -> replicas
     end
+  end
+
+  def has_service_healthcheck?(%__MODULE__{} = compose_spec, service) do
+    !!get(compose_spec, ["services", service, "healthcheck"])
+  end
+
+  defp get(%__MODULE__{parsed: parsed}, keys) when is_list(keys) do
+    get_in(parsed, keys)
   end
 end
