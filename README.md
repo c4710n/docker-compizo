@@ -65,6 +65,12 @@ Compizo (/kəmˈpaɪzoʊ/) is a compound word formed by combining _compose_ and 
 
 > docker-compizo = <ins>docker-comp</ins>ose + <ins>z</ins>er<ins>o</ins> deployment
 
+## TODO
+
+- [ ] Rewrite this project with [Docker engine API](https://docs.docker.com/engine/api/).
+- [ ] Integrate with a default proxy, such as [docker-easy-haproxy](https://github.com/byjg/docker-easy-haproxy).
+- [ ] Support connection draining.
+
 ## License
 
 MIT
