@@ -17,7 +17,6 @@ defmodule DockerCompizo.CLI do
       Optimus.new!(
         name: "docker-compizo",
         description: "Deploy a new version of Docker Compose service without downtime.",
-        version: "0.1.0",
         allow_unknown_args: false,
         args: [
           service: [
