@@ -1,6 +1,6 @@
 # docker-compizo
 
-![Nix flakes](https://img.shields.io/badge/Nix%20flakes-5277C3?logo=nixos&logoColor=white&style=flat-square)
+[![built with nix](https://builtwithnix.org/badge.svg)](https://builtwithnix.org)
 
 Deploys a new version of Docker Compose service without downtime.
 
